@@ -9,17 +9,16 @@
 
   <!-- Success/Error Messages -->
   {% if messages %}
-    <div class="alert alert-dismissible fade show">
-      {% for message in messages %}
-        <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}" role="alert">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
+    {% for message in messages %}
+      <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
   {% endif %}
 
   <!-- Dashboard Statistics -->
-  <div class="row mb-4">
+  <div class="row mb-4 text-center">
     <div class="col-md-4">
       <div class="card shadow-sm border-primary">
         <div class="card-body">
@@ -96,7 +95,7 @@
       <h4 class="mb-0">Existing Sellers</h4>
     </div>
     <div class="card-body">
-      <table class="table table-bordered">
+      <table class="table table-bordered text-center">
         <thead class="table-dark">
           <tr>
             <th>Seller Name</th>
@@ -132,5 +131,66 @@
     </div>
   </div>
 
+  <!-- Registered Users List -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">Registered Users</h4>
+    </div>
+    <div class="card-body">
+      <table class="table table-bordered text-center">
+        <thead class="table-primary">
+          <tr>
+            <th>User ID</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Date Joined</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.get_full_name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.date_joined|date:"d M Y, H:i" }}</td>
+            <td>
+              <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove_user">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center">No users found</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard Analytics -->
+  <div class="row mt-4 text-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm border-danger">
+        <div class="card-body">
+          <h5 class="card-title">Total Revenue</h5>
+          <h3 class="text-danger">₹{{ total_revenue }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm border-info">
+        <div class="card-body">
+          <h5 class="card-title">Total Tickets Sold</h5>
+          <h3 class="text-info">{{ total_tickets_sold }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

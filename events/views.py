@@ -1,11 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import login, authenticate, logout,get_user_model
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
-from .models import Event, Profile , Seller, Order, OrderItem 
+from .models import Event, Profile , Seller, Order, OrderItem ,Ticket
 from django.db.models import Sum, Count
+
+User = get_user_model()
 
 
 
@@ -110,7 +112,6 @@ def admin_required(view_func):
     """Decorator to restrict access to superusers (admin)."""
     return user_passes_test(lambda u: u.is_authenticated and u.is_superuser)(view_func)
 
-
 def custom_admin_login(request):
     """Handle admin login with hardcoded credentials."""
     ADMIN_EMAIL = "admin@gmail.com"
@@ -121,45 +122,36 @@ def custom_admin_login(request):
         password = request.POST["password"]
 
         if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
-            # Ensure an admin user exists
-            user, created = User.objects.get_or_create(
-                username="admin",
-                defaults={
-                    "email": ADMIN_EMAIL,
-                    "is_superuser": True,
-                    "is_staff": True,
-                    "is_active": True,
-                    "password": make_password(ADMIN_PASSWORD),  # Ensure hashed password
-                }
-            )
+            user = User.objects.filter(username="admin").first()
+            if not user:
+                user = User.objects.create_user("admin", ADMIN_EMAIL, ADMIN_PASSWORD)
+                user.is_superuser = True
+                user.is_staff = True
+                user.save()
 
-            if created:
-                print("Admin user created")
-
-            # Authenticate the user properly
             user = authenticate(request, username="admin", password=ADMIN_PASSWORD)
-
             if user:
                 login(request, user)
-                return redirect("admin_dashboard")  # ✅ Redirects to the custom admin panel
+                return redirect("admin_dashboard")
             else:
                 messages.error(request, "Authentication failed. Try resetting the admin password.")
         else:
             messages.error(request, "Invalid email or password.")
-
+    
     return render(request, "events/admin_login.html")
 
-
 @admin_required
+
+
+
 def admin_dashboard(request):
-    total_users = User.objects.count()
-    total_sellers = Seller.objects.count()
-    total_events = Event.objects.count()  # Adjust based on your model
-    sellers = Seller.objects.all()
+    if not request.user.is_staff:
+        return redirect('login')
 
     if request.method == "POST":
         action = request.POST.get("action")
 
+        # ✅ Handling Adding a Seller
         if action == "add_seller":
             name = request.POST.get("name")
             email = request.POST.get("email")
@@ -167,61 +159,53 @@ def admin_dashboard(request):
             password = request.POST.get("password")
             address = request.POST.get("address")
 
+            # Check if user already exists
             if User.objects.filter(email=email).exists():
-                messages.error(request, "A seller with this email already exists.")
-                return redirect("admin_dashboard")
+                messages.error(request, "Email already registered!")
+            else:
+                user = User.objects.create(
+                    username=email,
+                    first_name=name,
+                    email=email,
+                    password=make_password(password)
+                )
+                Seller.objects.create(user=user)
+                messages.success(request, "Seller added successfully.")
 
-            # Create User
-            user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
-            user.save()
-
-            # Create Profile
-            profile = Profile.objects.create(user=user, phone_number=phone, address=address)
-            profile.save()
-
-            # Create Seller
-            Seller.objects.create(user=user)
-
-            messages.success(request, "Seller added successfully!")
-            return redirect("admin_dashboard")
-
+        # ✅ Handling Removing a Seller
         elif action == "remove_seller":
             seller_id = request.POST.get("seller_id")
-            seller = Seller.objects.get(id=seller_id)
+            seller = get_object_or_404(Seller, id=seller_id)
             seller.user.delete()
             seller.delete()
-            messages.success(request, "Seller removed successfully!")
-            return redirect("admin_dashboard")
+            messages.success(request, "Seller removed successfully.")
 
-    context = {
+        # ✅ Handling Removing a User
+        elif action == "remove_user":
+            user_id = request.POST.get("user_id")
+            user = get_object_or_404(User, id=user_id)
+
+            if user.is_staff:
+                messages.error(request, "Cannot remove admin users!")
+            else:
+                user.delete()
+                messages.success(request, "User removed successfully.")
+
+        return redirect('admin_dashboard')
+
+    # ✅ Fetch total numbers
+    total_users = User.objects.filter(is_staff=False).exclude(id__in=Seller.objects.values_list('user_id', flat=True)).count()
+    total_sellers = Seller.objects.count()
+
+    # ✅ Exclude sellers from users list
+    users = User.objects.filter(is_staff=False).exclude(id__in=Seller.objects.values_list('user_id', flat=True))
+
+    # ✅ Get all sellers
+    sellers = Seller.objects.all()
+
+    return render(request, "events/admin_dashboard.html", {
         "total_users": total_users,
         "total_sellers": total_sellers,
-        "total_events": total_events,
+        "users": users,
         "sellers": sellers,
-    }
-    return render(request, "events/admin_dashboard.html", context)
-def remove_seller(request, seller_id):
-    """View to handle removing a seller."""
-    seller = get_object_or_404(Seller, id=seller_id)
-
-    if request.method == "POST":
-        seller.user.delete()  # This will delete the seller's associated User record
-        seller.delete()  # Remove the seller from the database
-        messages.success(request, "Seller removed successfully.")
-        return redirect('seller_list')  # Redirect to seller list page
-
-    return render(request, "admin/confirm_delete.html", {"seller": seller})
-
-def purchase_sales_statistics(request):
-    """View to fetch total sales, number of orders, and revenue."""
-    total_orders = Order.objects.count()
-    total_revenue = Order.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    total_items_sold = OrderItem.objects.aggregate(Sum('quantity'))['quantity__sum'] or 0
-
-    stats = {
-        "total_orders": total_orders,
-        "total_revenue": total_revenue,
-        "total_items_sold": total_items_sold,
-    }
-
-    return render(request, "admin/sales_statistics.html", stats)
+    })
