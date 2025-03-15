@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventX - Manage Events</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .events-container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">EventX</a>
+        </div>
+    </nav>
+    
+    <!-- Manage Events -->
+    <div class="container events-container">
+        <h2 class="text-center">Manage Events</h2>
+        <form>
+            <div class="mb-3">
+                <label for="eventName" class="form-label">Event Name</label>
+                <input type="text" class="form-control" id="eventName" placeholder="Enter event name">
+            </div>
+            <div class="mb-3">
+                <label for="eventDate" class="form-label">Event Date</label>
+                <input type="date" class="form-control" id="eventDate">
+            </div>
+            <div class="mb-3">
+                <label for="eventLocation" class="form-label">Location</label>
+                <input type="text" class="form-control" id="eventLocation" placeholder="Enter location">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Add Event</button>
+        </form>
+        <hr>
+        <h4 class="text-center">Existing Events</h4>
+        <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                Music Concert - 2025-05-10
+                <button class="btn btn-danger btn-sm">Delete</button>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                Tech Meetup - 2025-06-15
+                <button class="btn btn-danger btn-sm">Delete</button>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <p>&copy; 2025 EventX. Your Ultimate Event Destination.</p>
+    </div>
+</body>
+</html>

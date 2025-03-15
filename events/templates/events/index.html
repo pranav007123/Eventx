@@ -1,0 +1,115 @@
+{% extends "events/base.html" %}
+{% load static %}
+
+{% block title %}EventX - Upcoming Events{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Fixed width for carousel container */
+  .carousel-container {
+    max-width: 800px;
+    margin: auto;
+    margin-bottom: 40px;
+  }
+  /* Optional: Customize carousel captions */
+  .carousel-caption h5 {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+  .carousel-caption p {
+    font-size: 1.1rem;
+  }
+  /* Site introduction styling */
+  .site-intro {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 8px;
+    margin-bottom: 40px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Carousel Section -->
+<div class="carousel-container">
+  <div id="eventCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+      <button type="button" data-bs-target="#eventCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+      <button type="button" data-bs-target="#eventCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+      <button type="button" data-bs-target="#eventCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+    </div>
+    <div class="carousel-inner">
+      <!-- Slide 1 -->
+      <div class="carousel-item active">
+        <img src="{% static 'events/images/carousel1.jpg' %}" class="d-block w-100" alt="Slide 1">
+        <div class="carousel-caption d-none d-md-block">
+          <h5>Experience the Vibrance</h5>
+          <p>Discover the most exciting events happening in your city.</p>
+        </div>
+      </div>
+      <!-- Slide 2 -->
+      <div class="carousel-item">
+        <img src="{% static 'events/images/carousel2.jpg' %}" class="d-block w-100" alt="Slide 2">
+        <div class="carousel-caption d-none d-md-block">
+          <h5>Join the Celebration</h5>
+          <p>Immerse yourself in unforgettable experiences and celebrations.</p>
+        </div>
+      </div>
+      <!-- Slide 3 -->
+      <div class="carousel-item">
+        <img src="{% static 'events/images/carousel3.jpg' %}" class="d-block w-100" alt="Slide 3">
+        <div class="carousel-caption d-none d-md-block">
+          <h5>Live the Moment</h5>
+          <p>Find events that inspire, excite, and transform your life.</p>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#eventCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#eventCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+</div>
+
+<!-- Site Introduction Section -->
+<div class="container mb-4">
+  <div class="site-intro text-center">
+    <h2>Welcome to EventX</h2>
+    <p class="lead">EventX is your ultimate destination for discovering and booking the best events around you. Whether it's a live concert, tech conference, art exhibition, or a local festival, we bring the experience right to your fingertips. Join us and never miss an opportunity to create unforgettable memories.</p>
+  </div>
+</div>
+
+<!-- Upcoming Events Section -->
+<div class="container">
+  <h2 class="text-center mb-4">Upcoming Events</h2>
+  <div class="row">
+    <!-- Event 1 -->
+    <div class="col-md-4 mb-4">
+      <div class="card event-card">
+        <img src="{% static 'events/images/event1.jpg' %}" class="card-img-top" alt="Music Concert">
+        <div class="card-body">
+          <h5 class="card-title">Music Concert - Live in New York</h5>
+          <p class="card-text">Location: New York | Date: March 25, 2025</p>
+          <a href="" class="btn btn-primary">View Details</a>
+        </div>
+      </div>
+    </div>
+    <!-- Event 2 -->
+    <div class="col-md-4 mb-4">
+      <div class="card event-card">
+        <img src="{% static 'events/images/event2.jpg' %}" class="card-img-top" alt="Tech Conference">
+        <div class="card-body">
+          <h5 class="card-title">Tech Conference 2025</h5>
+          <p class="card-text">Location: San Francisco | Date: April 10, 2025</p>
+          <a href="" class="btn btn-primary">View Details</a>
+        </div>
+      </div>
+    </div>
+    <!-- Add more events here if needed -->
+  </div>
+</div>
+{% endblock %}
