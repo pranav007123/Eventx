@@ -4,6 +4,9 @@ from pathlib import Path
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+LOGIN_REDIRECT_URL = '/'
+
+
 # SECURITY WARNING: Keep the secret key used in production secret!
 SECRET_KEY = 'your-secret-key'
 

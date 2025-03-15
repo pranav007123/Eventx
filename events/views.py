@@ -4,7 +4,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
-from .models import Event, Profile
+from .models import Event, Profile , Seller, Order, OrderItem 
+from django.db.models import Sum, Count
+
 
 
 # ------------------------------------------------------------------
@@ -150,11 +152,46 @@ def custom_admin_login(request):
 
 @admin_required
 def admin_dashboard(request):
-    """Custom admin dashboard for managing users and events."""
     total_users = User.objects.count()
-    total_sellers = Profile.objects.filter(is_seller=True).count()
-    total_events = Event.objects.count()
-    sellers = Profile.objects.filter(is_seller=True)
+    total_sellers = Seller.objects.count()
+    total_events = Event.objects.count()  # Adjust based on your model
+    sellers = Seller.objects.all()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "add_seller":
+            name = request.POST.get("name")
+            email = request.POST.get("email")
+            phone = request.POST.get("phone")
+            password = request.POST.get("password")
+            address = request.POST.get("address")
+
+            if User.objects.filter(email=email).exists():
+                messages.error(request, "A seller with this email already exists.")
+                return redirect("admin_dashboard")
+
+            # Create User
+            user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
+            user.save()
+
+            # Create Profile
+            profile = Profile.objects.create(user=user, phone_number=phone, address=address)
+            profile.save()
+
+            # Create Seller
+            Seller.objects.create(user=user)
+
+            messages.success(request, "Seller added successfully!")
+            return redirect("admin_dashboard")
+
+        elif action == "remove_seller":
+            seller_id = request.POST.get("seller_id")
+            seller = Seller.objects.get(id=seller_id)
+            seller.user.delete()
+            seller.delete()
+            messages.success(request, "Seller removed successfully!")
+            return redirect("admin_dashboard")
 
     context = {
         "total_users": total_users,
@@ -163,3 +200,28 @@ def admin_dashboard(request):
         "sellers": sellers,
     }
     return render(request, "events/admin_dashboard.html", context)
+def remove_seller(request, seller_id):
+    """View to handle removing a seller."""
+    seller = get_object_or_404(Seller, id=seller_id)
+
+    if request.method == "POST":
+        seller.user.delete()  # This will delete the seller's associated User record
+        seller.delete()  # Remove the seller from the database
+        messages.success(request, "Seller removed successfully.")
+        return redirect('seller_list')  # Redirect to seller list page
+
+    return render(request, "admin/confirm_delete.html", {"seller": seller})
+
+def purchase_sales_statistics(request):
+    """View to fetch total sales, number of orders, and revenue."""
+    total_orders = Order.objects.count()
+    total_revenue = Order.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_items_sold = OrderItem.objects.aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+    stats = {
+        "total_orders": total_orders,
+        "total_revenue": total_revenue,
+        "total_items_sold": total_items_sold,
+    }
+
+    return render(request, "admin/sales_statistics.html", stats)

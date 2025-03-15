@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, User, Group, Permission
 
 
+
+
+
 class CustomAdmin(AbstractUser):
     is_custom_admin = models.BooleanField(default=True)
 
@@ -43,3 +46,21 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.event.name}"
+    
+    
+class Seller(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    
+    company_name = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return self.user.username
+
+class Order(models.Model):
+    seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    quantity = models.IntegerField()

@@ -19,4 +19,7 @@ urlpatterns = [
     path("admin/login/", views.custom_admin_login, name="custom_admin_login"),
     path("admin/dashboard/", views.admin_dashboard, name="admin_dashboard"),
      path('accounts/logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),
+    
+    path('admin/remove-seller/<int:seller_id>/',views.remove_seller, name='remove_seller'),
+    path('admin/sales-statistics/', views.purchase_sales_statistics, name='sales_statistics'),
 ]
