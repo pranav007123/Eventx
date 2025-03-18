@@ -38,6 +38,14 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
               </li>
+            {% elif user.seller %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'seller_dashboard' %}">Seller Dashboard</a>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'booking_history' %}">My Bookings</a>
+              </li>
             {% endif %}
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button"
@@ -87,6 +95,10 @@
               <li><a href="" class="text-white text-decoration-none">Profile</a></li>
               {% if user.is_superuser %}
                 <li><a href="{% url 'admin_dashboard' %}" class="text-white text-decoration-none">Admin Dashboard</a></li>
+              {% elif user.seller %}
+                <li><a href="{% url 'seller_dashboard' %}" class="text-white text-decoration-none">Seller Dashboard</a></li>
+              {% else %}
+                <li><a href="{% url 'booking_history' %}" class="text-white text-decoration-none">My Bookings</a></li>
               {% endif %}
               <li>
                 <form action="{% url 'logout' %}" method="post">

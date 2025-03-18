@@ -19,7 +19,7 @@
 
   <!-- Dashboard Statistics -->
   <div class="row mb-4 text-center">
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="card shadow-sm border-primary">
         <div class="card-body">
           <h5 class="card-title text-primary">Total Users</h5>
@@ -27,7 +27,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="card shadow-sm border-warning">
         <div class="card-body">
           <h5 class="card-title text-warning">Total Sellers</h5>
@@ -35,11 +35,43 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="card shadow-sm border-success">
         <div class="card-body">
           <h5 class="card-title text-success">Total Events</h5>
           <h3 class="fw-bold">{{ total_events }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-info">
+        <div class="card-body">
+          <h5 class="card-title text-info">Total Revenue</h5>
+          <h3 class="fw-bold">₹{{ total_revenue }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Charts -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Revenue by Seller</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">Tickets Sold by Event</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="ticketsChart"></canvas>
         </div>
       </div>
     </div>
@@ -193,4 +225,62 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Revenue by Seller Chart
+  const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+  new Chart(revenueCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ seller_names|safe }},
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: {{ seller_revenues|safe }},
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // Tickets by Event Chart
+  const ticketsCtx = document.getElementById('ticketsChart').getContext('2d');
+  new Chart(ticketsCtx, {
+    type: 'pie',
+    data: {
+      labels: {{ event_names|safe }},
+      datasets: [{
+        data: {{ event_tickets|safe }},
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.5)',
+          'rgba(54, 162, 235, 0.5)',
+          'rgba(255, 206, 86, 0.5)',
+          'rgba(75, 192, 192, 0.5)',
+          'rgba(153, 102, 255, 0.5)'
+        ],
+        borderColor: [
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true
+    }
+  });
+</script>
 {% endblock %}

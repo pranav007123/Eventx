@@ -6,6 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 LOGIN_REDIRECT_URL = '/'
 
+# AUTH_USER_MODEL = "events.CustomAdmin"
+
 
 # SECURITY WARNING: Keep the secret key used in production secret!
 SECRET_KEY = 'your-secret-key'
@@ -93,6 +95,13 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Ensure the static folder exists
 os.makedirs(BASE_DIR / "static", exist_ok=True)
 
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Ensure the media folder exists
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+
 # **Logging Configuration**
 LOGGING = {
     'version': 1,
@@ -117,3 +126,8 @@ LOGGING = {
 os.makedirs(BASE_DIR / "logs", exist_ok=True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Razorpay Configuration
+RAZORPAY_KEY_ID = 'rzp_test_R00Zy6ve0bPcx1'  # Replace with your test key
+RAZORPAY_KEY_SECRET = 'XGPWyeenCcs8pRDhcFEz2WOl'  # Replace with your test secret
+RAZORPAY_CURRENCY = 'INR'

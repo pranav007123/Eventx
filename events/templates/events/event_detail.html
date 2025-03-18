@@ -1,0 +1,179 @@
+{% extends "events/base.html" %}
+{% load static %}
+
+{% block title %}{{ event.name }} - EventX{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Event Image -->
+        <div class="col-md-6 mb-4">
+            {% if event.image %}
+            <img src="{{ event.image.url }}" alt="{{ event.name }}" class="img-fluid rounded shadow-sm">
+            {% else %}
+            <div class="bg-light p-5 text-center rounded">
+                <i class="fas fa-calendar-alt fa-5x text-muted"></i>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Event Details -->
+        <div class="col-md-6">
+            <h1 class="mb-3">{{ event.name }}</h1>
+            
+            <div class="mb-4">
+                <p class="text-muted mb-2">
+                    <i class="fas fa-calendar-alt me-2"></i>{{ event.date|date:"F j, Y" }}<br>
+                    <i class="fas fa-clock me-2"></i>{{ event.date|date:"g:i A" }}<br>
+                    <i class="fas fa-map-marker-alt me-2"></i>{{ event.location }}
+                </p>
+                <p class="lead">{{ event.description }}</p>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Ticket Information</h5>
+                    <p class="card-text">
+                        <strong>Price:</strong> ₹{{ event.price }}<br>
+                        <strong>Available Tickets:</strong> {{ event.available_tickets }} / {{ event.total_tickets }}
+                    </p>
+
+                    {% if user.is_authenticated and not user.is_superuser and not user.seller %}
+                        {% if event.available_tickets > 0 %}
+                        <form method="post" action="{% url 'book_event' event.id %}" class="mt-3" id="bookingForm">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Number of Tickets</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" 
+                                       min="1" max="{{ event.available_tickets }}" value="1" required
+                                       onchange="updateTotalAmount(this.value)">
+                            </div>
+                            <div class="mb-3">
+                                <p class="mb-1"><strong>Total Amount:</strong> ₹<span id="totalAmount">{{ event.price }}</span></p>
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="createRazorpayOrder()">
+                                Pay Now
+                            </button>
+                        </form>
+
+                        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                        <script>
+                            const eventPrice = {{ event.price }};
+                            
+                            function updateTotalAmount(quantity) {
+                                const total = eventPrice * quantity;
+                                document.getElementById('totalAmount').textContent = total;
+                            }
+
+                            function createRazorpayOrder() {
+                                const quantity = document.getElementById('quantity').value;
+                                const totalAmount = parseFloat(document.getElementById('totalAmount').textContent);
+                                
+                                fetch("{% url 'create_razorpay_order' %}", {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                                    },
+                                    body: JSON.stringify({
+                                        event_id: {{ event.id }},
+                                        quantity: quantity,
+                                        amount: totalAmount
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    const options = {
+                                        key: '{{ razorpay_key_id }}',
+                                        amount: data.amount,
+                                        currency: 'INR',
+                                        name: 'EventX',
+                                        description: '{{ event.name }} Ticket Booking',
+                                        order_id: data.order_id,
+                                        handler: function (response) {
+                                            verifyPayment(response);
+                                        },
+                                        prefill: {
+                                            name: '{{ user.get_full_name }}',
+                                            email: '{{ user.email }}'
+                                        },
+                                        theme: {
+                                            color: '#3399cc'
+                                        }
+                                    };
+                                    const rzp = new Razorpay(options);
+                                    rzp.open();
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('Failed to create order. Please try again.');
+                                });
+                            }
+
+                            function verifyPayment(response) {
+                                fetch("{% url 'verify_payment' %}", {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                                    },
+                                    body: JSON.stringify({
+                                        razorpay_payment_id: response.razorpay_payment_id,
+                                        razorpay_order_id: response.razorpay_order_id,
+                                        razorpay_signature: response.razorpay_signature,
+                                        event_id: {{ event.id }},
+                                        quantity: document.getElementById('quantity').value
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        window.location.href = "{% url 'booking_history' %}";
+                                    } else {
+                                        alert('Payment verification failed. Please contact support.');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('Payment verification failed. Please contact support.');
+                                });
+                            }
+                        </script>
+                        {% else %}
+                        <div class="alert alert-warning mb-0">
+                            Sorry, this event is sold out!
+                        </div>
+                        {% endif %}
+                    {% elif not user.is_authenticated %}
+                        <div class="alert alert-info mb-0">
+                            Please <a href="{% url 'login' %}">login</a> to book tickets.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Organizer Information -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Event Organizer</h5>
+                    <p class="card-text">
+                        <strong>Organizer:</strong> {{ event.seller.user.first_name|default:event.seller.user.username }}<br>
+                        <strong>Contact:</strong> {{ event.seller.user.email }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

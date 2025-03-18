@@ -1,0 +1,63 @@
+{% extends "events/base.html" %}
+{% load static %}
+
+{% block title %}Booking History - EventX{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Your Booking History</h1>
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if bookings %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Tickets</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Booked On</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td>
+                        <a href="{% url 'event_detail' booking.event.id %}">{{ booking.event.name }}</a>
+                    </td>
+                    <td>{{ booking.event.date|date:"F j, Y, g:i A" }}</td>
+                    <td>{{ booking.quantity }}</td>
+                    <td>₹{{ booking.total_amount }}</td>
+                    <td>
+                        <span class="badge {% if booking.status == 'confirmed' %}bg-success{% elif booking.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ booking.status|title }}
+                        </span>
+                    </td>
+                    <td>{{ booking.booking_date|date:"F j, Y, g:i A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-ticket-alt fa-4x text-muted mb-3"></i>
+        <h3>No Bookings Yet</h3>
+        <p class="text-muted">You haven't made any bookings yet.</p>
+        <a href="{% url 'index' %}" class="btn btn-primary">Browse Events</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
