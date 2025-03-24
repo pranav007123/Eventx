@@ -13,7 +13,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Total Revenue</h5>
-                    <p class="card-text display-6">${{ total_revenue }}</p>
+                    <p class="card-text display-6">₹{{ total_revenue }}</p>
                 </div>
             </div>
         </div>
@@ -39,7 +39,9 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">Your Events</h3>
-            <a href="{% url 'create_event' %}" class="btn btn-primary">Create New Event</a>
+            <a href="{% url 'create_event' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create New Event
+            </a>
         </div>
         <div class="card-body">
             {% if events %}
@@ -62,8 +64,46 @@
                             <td>{{ event.location }}</td>
                             <td>{{ event.available_tickets }}/{{ event.total_tickets }}</td>
                             <td>
-                                <a href="{% url 'event_detail' event.id %}" class="btn btn-sm btn-info">View</a>
-                                <a href="{% url 'edit_event' event.id %}" class="btn btn-sm btn-warning">Edit</a>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'event_detail' event.id %}" class="btn btn-sm btn-info text-white" title="View Event">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'edit_event' event.id %}" class="btn btn-sm btn-warning text-white" title="Edit Event">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger text-white" data-bs-toggle="modal" data-bs-target="#deleteModal{{ event.id }}" title="Delete Event">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade" id="deleteModal{{ event.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ event.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title" id="deleteModalLabel{{ event.id }}">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>Delete Event
+                                                </h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Are you sure you want to delete "{{ event.name }}"?</p>
+                                                <p class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>This action cannot be undone.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    <i class="fas fa-times me-2"></i>Cancel
+                                                </button>
+                                                <form method="post" action="{% url 'delete_event' event.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="fas fa-trash-alt me-2"></i>Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -98,7 +138,7 @@
                         <tr>
                             <td>#{{ order.id }}</td>
                             <td>{{ order.created_at }}</td>
-                            <td>${{ order.total_amount }}</td>
+                            <td>₹{{ order.total_amount }}</td>
                             <td><span class="badge bg-success">Completed</span></td>
                         </tr>
                         {% endfor %}
@@ -111,4 +151,25 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.btn-group .btn {
+    padding: 0.375rem 0.75rem;
+    margin: 0 2px;
+    border-radius: 4px;
+}
+.btn-group .btn i {
+    font-size: 1rem;
+}
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.modal-header.bg-danger {
+    border-top-left-radius: 0.3rem;
+    border-top-right-radius: 0.3rem;
+}
+</style>
 {% endblock %}

@@ -4,60 +4,90 @@
 {% block title %}Create Event - EventX{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
-                    <h2 class="mb-0">Create New Event</h2>
+                    <h3 class="text-center">Create New Event</h3>
                 </div>
                 <div class="card-body">
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
                         {% endfor %}
                     {% endif %}
 
-                    <form method="post" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="name" class="form-label">Event Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
+                                <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                            </div>
                         </div>
-                        
+
                         <div class="mb-3">
-                            <label for="date" class="form-label">Date and Time</label>
-                            <input type="datetime-local" class="form-control" id="date" name="date" required>
+                            <label for="date" class="form-label">Event Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                <input type="date" class="form-control" id="date" name="date" required>
+                            </div>
+                            <div class="form-text">Please select a future date for your event.</div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="location" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="location" name="location" required>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                <input type="text" class="form-control" id="location" name="location" required>
+                            </div>
                         </div>
-                        
+
                         <div class="mb-3">
-                            <label for="price" class="form-label">Ticket Price ($)</label>
-                            <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+                            <label for="price" class="form-label">Price (₹)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-rupee-sign"></i></span>
+                                <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+                            </div>
                         </div>
-                        
+
                         <div class="mb-3">
-                            <label for="total_tickets" class="form-label">Total Tickets Available</label>
-                            <input type="number" class="form-control" id="total_tickets" name="total_tickets" required>
+                            <label for="total_tickets" class="form-label">Total Tickets</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-ticket-alt"></i></span>
+                                <input type="number" class="form-control" id="total_tickets" name="total_tickets" min="1" required>
+                            </div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="image" class="form-label">Event Image</label>
-                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-image"></i></span>
+                                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            </div>
+                            <div class="form-text">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF</div>
                         </div>
-                        
+
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Create Event</button>
-                            <a href="{% url 'seller_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create Event
+                            </button>
+                            <a href="{% url 'seller_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -65,4 +95,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
 {% endblock %} 

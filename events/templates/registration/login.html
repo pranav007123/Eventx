@@ -1,42 +1,105 @@
-{% extends "events/base.html" %}
+{% extends 'events/base.html' %}
 {% load static %}
 
 {% block title %}Login - EventX{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <h2 class="text-center mb-4">Login</h2>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Welcome Back</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
 
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-danger">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
 
-    <form method="post">
-      {% csrf_token %}
-      <div class="mb-3">
-        <label for="id_username" class="form-label">Email</label>
-        <input type="email" name="username" class="form-control" id="id_username" placeholder="Enter your email" required>
-      </div>
-      <div class="mb-3">
-        <label for="id_password" class="form-label">Password</label>
-        <input type="password" name="password" class="form-control" id="id_password" placeholder="Enter your password" required>
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Login</button>
-    </form>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
 
-    <p class="mt-3 text-center">
-      Don't have an account? <a href="{% url 'register' %}">Register here</a>.
-    </p>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </button>
+                        </div>
+                    </form>
 
-    <!-- Admin and Seller Login Buttons -->
-    <div class="text-center mt-3">
-      <a href="{% url 'custom_admin_login' %}" class="btn btn-secondary w-100 mb-2">Admin Login</a>
-      <a href="{% url 'seller_login' %}" class="btn btn-info w-100">Seller Login</a>
+                    <div class="text-center mt-3">
+                        <p>Don't have an account? <a href="{% url 'register' %}" class="text-decoration-none">Register here</a></p>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'custom_admin_login' %}" class="btn btn-secondary">
+                            <i class="fas fa-user-shield me-2"></i>Admin Login
+                        </a>
+                        <a href="{% url 'seller_login' %}" class="btn btn-info">
+                            <i class="fas fa-store me-2"></i>Seller Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = input.nextElementSibling.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
 {% endblock %}

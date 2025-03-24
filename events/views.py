@@ -24,8 +24,27 @@ razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZOR
 
 def index(request):
     """Display the homepage with a list of all events."""
-    events = Event.objects.filter(date__gte=timezone.now()).order_by('date')
-    return render(request, 'events/index.html', {'events': events})
+    search_query = request.GET.get('search', '')
+    
+    # Start with all future events
+    events = Event.objects.filter(date__gte=timezone.now())
+    
+    # Apply search filter if query exists
+    if search_query:
+        events = events.filter(
+            models.Q(name__icontains=search_query) |
+            models.Q(description__icontains=search_query) |
+            models.Q(location__icontains=search_query)
+        )
+    
+    # Order by date
+    events = events.order_by('date')
+    
+    context = {
+        'events': events,
+        'search_query': search_query
+    }
+    return render(request, 'events/index.html', context)
 
 def event_detail(request, event_id):
     """Display details for a single event."""
@@ -46,6 +65,23 @@ def register(request):
         password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
 
+        # Validation
+        if not all([name, email, phone, address, password, confirm_password]):
+            messages.error(request, "All fields are required!")
+            return redirect('register')
+
+        if len(password) < 8:
+            messages.error(request, "Password must be at least 8 characters long!")
+            return redirect('register')
+
+        if not any(char.isdigit() for char in password):
+            messages.error(request, "Password must contain at least one number!")
+            return redirect('register')
+
+        if not any(char.isupper() for char in password):
+            messages.error(request, "Password must contain at least one uppercase letter!")
+            return redirect('register')
+
         if password != confirm_password:
             messages.error(request, "Passwords do not match!")
             return redirect('register')
@@ -59,12 +95,11 @@ def register(request):
             user.first_name = name
             user.save()
             Profile.objects.create(user=user, phone_number=phone, address=address)
+            messages.success(request, "Registration successful! Please login.")
+            return redirect('login')
         except Exception as e:
             messages.error(request, f"Registration failed: {e}")
             return redirect('register')
-
-        messages.success(request, "Registration successful! Please login.")
-        return redirect('login')
 
     return render(request, 'registration/register.html')
 
@@ -221,7 +256,7 @@ def seller_dashboard(request):
     seller_events = Event.objects.filter(seller=seller)
     seller_orders = Order.objects.filter(seller=seller)
     total_revenue = seller_orders.aggregate(total=Sum('total_amount'))['total'] or 0
-    total_tickets = OrderItem.objects.filter(order__seller=seller).aggregate(total=Sum('quantity'))['total'] or 0
+    total_tickets = Booking.objects.filter(event__seller=seller, status='confirmed').aggregate(total=Sum('quantity'))['total'] or 0
 
     return render(request, "events/seller_dashboard.html", {
         "seller": seller,
@@ -237,11 +272,34 @@ def create_event(request):
     if request.method == "POST":
         name = request.POST.get("name")
         description = request.POST.get("description")
-        date = request.POST.get("date")
+        date_str = request.POST.get("date")
         location = request.POST.get("location")
         price = request.POST.get("price")
         total_tickets = request.POST.get("total_tickets")
         image = request.FILES.get("image")
+
+        # Validate required fields
+        if not all([name, description, date_str, location, price, total_tickets]):
+            messages.error(request, "All fields are required!")
+            return redirect("create_event")
+
+        try:
+            # Convert date string to datetime object
+            date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Invalid date format! Please use YYYY-MM-DD format.")
+            return redirect("create_event")
+
+        try:
+            price = float(price)
+            total_tickets = int(total_tickets)
+        except ValueError:
+            messages.error(request, "Invalid price or ticket quantity!")
+            return redirect("create_event")
+
+        if price <= 0 or total_tickets <= 0:
+            messages.error(request, "Price and ticket quantity must be greater than 0!")
+            return redirect("create_event")
 
         try:
             seller = Seller.objects.get(user=request.user)
@@ -270,14 +328,49 @@ def edit_event(request, event_id):
     event = get_object_or_404(Event, id=event_id, seller__user=request.user)
     
     if request.method == "POST":
-        event.name = request.POST.get("name", event.name)
-        event.description = request.POST.get("description", event.description)
-        event.date = request.POST.get("date", event.date)
-        event.location = request.POST.get("location", event.location)
-        event.price = request.POST.get("price", event.price)
-        
-        if "image" in request.FILES:
-            event.image = request.FILES["image"]
+        name = request.POST.get("name")
+        description = request.POST.get("description")
+        date = request.POST.get("date")
+        location = request.POST.get("location")
+        price = request.POST.get("price")
+        image = request.FILES.get("image")
+
+        # Validation
+        if not all([name, description, date, location, price]):
+            messages.error(request, "All fields are required!")
+            return redirect("edit_event", event_id=event_id)
+
+        try:
+            price = float(price)
+            if price <= 0:
+                messages.error(request, "Price must be greater than 0!")
+                return redirect("edit_event", event_id=event_id)
+        except ValueError:
+            messages.error(request, "Invalid price format!")
+            return redirect("edit_event", event_id=event_id)
+
+        try:
+            # Convert date string to datetime object
+            event_date = timezone.datetime.strptime(date, '%Y-%m-%d').date()
+            if event_date < timezone.now().date():
+                messages.error(request, "Event date cannot be in the past!")
+                return redirect("edit_event", event_id=event_id)
+        except ValueError:
+            messages.error(request, "Please enter date in YYYY-MM-DD format!")
+            return redirect("edit_event", event_id=event_id)
+
+        if image and image.size > 5 * 1024 * 1024:  # 5MB limit
+            messages.error(request, "Image size should not exceed 5MB!")
+            return redirect("edit_event", event_id=event_id)
+
+        # Update event
+        event.name = name
+        event.description = description
+        event.date = event_date  # Use the converted date
+        event.location = location
+        event.price = price
+        if image:
+            event.image = image
         
         try:
             event.save()
@@ -285,7 +378,10 @@ def edit_event(request, event_id):
             return redirect("event_detail", event_id=event.id)
         except Exception as e:
             messages.error(request, f"Failed to update event: {str(e)}")
+            return redirect("edit_event", event_id=event_id)
     
+    # Format the date for the input field
+    event.date = event.date.strftime('%Y-%m-%d')
     return render(request, "events/edit_event.html", {"event": event})
 
 @seller_required
@@ -326,6 +422,10 @@ def book_event(request, event_id):
             return redirect("event_detail", event_id=event_id)
         
         try:
+            # Update available tickets first
+            event.available_tickets -= quantity
+            event.save()
+            
             # Create the booking
             booking = Booking.objects.create(
                 user=request.user,
@@ -367,10 +467,21 @@ def booking_history(request):
 def add_balance(request):
     """Add balance to user's account."""
     if request.method == "POST":
+        amount = request.POST.get("amount")
+        
+        # Validation
+        if not amount:
+            messages.error(request, "Please enter an amount.")
+            return redirect("profile")
+            
         try:
-            amount = float(request.POST.get("amount", 0))
+            amount = float(amount)
             if amount <= 0:
-                messages.error(request, "Please enter a valid amount.")
+                messages.error(request, "Amount must be greater than 0!")
+                return redirect("profile")
+                
+            if amount > 100000:  # Maximum balance limit
+                messages.error(request, "Maximum balance limit is ₹100,000!")
                 return redirect("profile")
             
             request.user.profile.add_balance(amount)
@@ -412,6 +523,11 @@ def verify_payment(request):
     try:
         data = json.loads(request.body)
         
+        # Validate required fields
+        required_fields = ['razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature', 'event_id', 'quantity']
+        if not all(field in data for field in required_fields):
+            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
+        
         # Verify payment signature
         params_dict = {
             'razorpay_payment_id': data['razorpay_payment_id'],
@@ -419,15 +535,25 @@ def verify_payment(request):
             'razorpay_signature': data['razorpay_signature']
         }
         
-        razorpay_client.utility.verify_payment_signature(params_dict)
+        try:
+            razorpay_client.utility.verify_payment_signature(params_dict)
+        except razorpay.errors.SignatureVerificationError:
+            return JsonResponse({'success': False, 'error': 'Invalid payment signature'}, status=400)
         
-        # Get event and create booking
+        # Get event and validate
         event = get_object_or_404(Event, id=data['event_id'])
-        quantity = int(data['quantity'])
+        try:
+            quantity = int(data['quantity'])
+        except ValueError:
+            return JsonResponse({'success': False, 'error': 'Invalid quantity'}, status=400)
+            
+        if quantity <= 0:
+            return JsonResponse({'success': False, 'error': 'Quantity must be greater than 0'}, status=400)
+            
+        if quantity > event.available_tickets:
+            return JsonResponse({'success': False, 'error': 'Not enough tickets available'}, status=400)
+            
         total_amount = event.price * quantity
-        
-        if quantity <= 0 or quantity > event.available_tickets:
-            raise ValueError("Invalid ticket quantity")
         
         # Create booking
         booking = Booking.objects.create(
@@ -452,7 +578,5 @@ def verify_payment(request):
         
         return JsonResponse({'success': True})
         
-    except razorpay.errors.SignatureVerificationError:
-        return JsonResponse({'success': False, 'error': 'Invalid payment signature'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
