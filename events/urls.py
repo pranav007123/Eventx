@@ -37,4 +37,8 @@ urlpatterns = [
     path('create-razorpay-order/', views.create_razorpay_order, name='create_razorpay_order'),
     path('verify-payment/', views.verify_payment, name='verify_payment'),
     
+    path('profile/', views.profile, name='profile'),
+    path('profile/update/', views.update_profile, name='update_profile'),
+    path('profile/update-picture/', views.update_profile_picture, name='update_profile_picture'),
+    path('profile/change-password/', views.change_password, name='change_password'),
 ]

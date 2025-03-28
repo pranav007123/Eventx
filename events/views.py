@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth import login, authenticate, logout, get_user_model
+from django.contrib.auth import login, authenticate, logout, get_user_model, update_session_auth_hash
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
@@ -12,6 +12,7 @@ import razorpay
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .forms import ProfileUpdateForm, PasswordChangeForm
 
 User = get_user_model()
 
@@ -56,52 +57,53 @@ def event_detail(request, event_id):
     return render(request, 'events/event_detail.html', context)
 
 def register(request):
-    """Handle user registration."""
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        email = request.POST.get('email')
-        phone = request.POST.get('phone')
-        address = request.POST.get('address')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
+    """Register a new user."""
+    if request.method == "POST":
+        username = request.POST.get("username")
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
+        phone_number = request.POST.get("phone_number")
+        address = request.POST.get("address")
 
-        # Validation
-        if not all([name, email, phone, address, password, confirm_password]):
+        if not all([username, email, password, confirm_password, phone_number]):
             messages.error(request, "All fields are required!")
-            return redirect('register')
-
-        if len(password) < 8:
-            messages.error(request, "Password must be at least 8 characters long!")
-            return redirect('register')
-
-        if not any(char.isdigit() for char in password):
-            messages.error(request, "Password must contain at least one number!")
-            return redirect('register')
-
-        if not any(char.isupper() for char in password):
-            messages.error(request, "Password must contain at least one uppercase letter!")
-            return redirect('register')
+            return redirect("register")
 
         if password != confirm_password:
             messages.error(request, "Passwords do not match!")
-            return redirect('register')
+            return redirect("register")
 
-        if User.objects.filter(username=email).exists():
-            messages.error(request, "This email is already registered!")
-            return redirect('register')
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already exists!")
+            return redirect("register")
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "Email already exists!")
+            return redirect("register")
 
         try:
-            user = User.objects.create_user(username=email, email=email, password=password)
-            user.first_name = name
-            user.save()
-            Profile.objects.create(user=user, phone_number=phone, address=address)
-            messages.success(request, "Registration successful! Please login.")
-            return redirect('login')
-        except Exception as e:
-            messages.error(request, f"Registration failed: {e}")
-            return redirect('register')
+            # Create user
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password
+            )
+            
+            # Create profile
+            Profile.objects.create(
+                user=user,
+                phone_number=phone_number,
+                address=address
+            )
 
-    return render(request, 'registration/register.html')
+            messages.success(request, "Registration successful! Please login.")
+            return redirect("login")
+        except Exception as e:
+            messages.error(request, f"Registration failed: {str(e)}")
+            return redirect("register")
+
+    return render(request, "events/register.html")
 
 def custom_login(request):
     """Single login page for all users."""
@@ -333,20 +335,42 @@ def edit_event(request, event_id):
         date = request.POST.get("date")
         location = request.POST.get("location")
         price = request.POST.get("price")
+        total_tickets = request.POST.get("total_tickets")
+        available_tickets = request.POST.get("available_tickets")
         image = request.FILES.get("image")
 
         # Validation
-        if not all([name, description, date, location, price]):
+        if not all([name, description, date, location, price, total_tickets, available_tickets]):
             messages.error(request, "All fields are required!")
             return redirect("edit_event", event_id=event_id)
 
         try:
             price = float(price)
+            total_tickets = int(total_tickets)
+            available_tickets = int(available_tickets)
+            
             if price <= 0:
                 messages.error(request, "Price must be greater than 0!")
                 return redirect("edit_event", event_id=event_id)
+                
+            if total_tickets < 0 or available_tickets < 0:
+                messages.error(request, "Ticket numbers cannot be negative!")
+                return redirect("edit_event", event_id=event_id)
+                
+            if available_tickets > total_tickets:
+                messages.error(request, "Available tickets cannot be more than total tickets!")
+                return redirect("edit_event", event_id=event_id)
+                
+            # Calculate sold tickets
+            sold_tickets = event.total_tickets - event.available_tickets
+            
+            # Ensure we don't reduce available tickets below sold tickets
+            if available_tickets < (total_tickets - sold_tickets):
+                messages.error(request, "Cannot reduce available tickets below sold tickets!")
+                return redirect("edit_event", event_id=event_id)
+
         except ValueError:
-            messages.error(request, "Invalid price format!")
+            messages.error(request, "Invalid price or ticket numbers!")
             return redirect("edit_event", event_id=event_id)
 
         try:
@@ -366,9 +390,11 @@ def edit_event(request, event_id):
         # Update event
         event.name = name
         event.description = description
-        event.date = event_date  # Use the converted date
+        event.date = event_date
         event.location = location
         event.price = price
+        event.total_tickets = total_tickets
+        event.available_tickets = available_tickets
         if image:
             event.image = image
         
@@ -580,3 +606,87 @@ def verify_payment(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
+def profile(request):
+    return render(request, 'events/profile.html')
+
+@login_required
+def update_profile(request):
+    if request.method == 'POST':
+        user = request.user
+        user.first_name = request.POST.get('first_name')
+        user.last_name = request.POST.get('last_name')
+        user.email = request.POST.get('email')
+        user.save()
+
+        profile = user.profile
+        profile.phone_number = request.POST.get('phone_number')
+        profile.address = request.POST.get('address')
+        profile.save()
+
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
+    return redirect('profile')
+
+@login_required
+def update_profile_picture(request):
+    if request.method == 'POST' and request.FILES.get('profile_picture'):
+        profile = request.user.profile
+        profile.profile_picture = request.FILES['profile_picture']
+        profile.save()
+        messages.success(request, 'Profile picture updated successfully!')
+    return redirect('profile')
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Password changed successfully!')
+            return redirect('profile')
+        else:
+            for error in form.errors.values():
+                messages.error(request, error)
+    return redirect('profile')
+
+@seller_required
+def update_tickets(request, event_id):
+    """Update available tickets for an event."""
+    event = get_object_or_404(Event, id=event_id, seller__user=request.user)
+    
+    if request.method == "POST":
+        new_total = request.POST.get("total_tickets")
+        new_available = request.POST.get("available_tickets")
+        
+        try:
+            new_total = int(new_total)
+            new_available = int(new_available)
+            
+            if new_total < 0 or new_available < 0:
+                messages.error(request, "Ticket numbers cannot be negative!")
+                return redirect("seller_dashboard")
+                
+            if new_available > new_total:
+                messages.error(request, "Available tickets cannot be more than total tickets!")
+                return redirect("seller_dashboard")
+                
+            # Calculate how many tickets have been sold
+            sold_tickets = event.total_tickets - event.available_tickets
+            
+            # Update total tickets
+            event.total_tickets = new_total
+            # Update available tickets while preserving sold tickets
+            event.available_tickets = new_total - sold_tickets
+            
+            event.save()
+            messages.success(request, "Ticket numbers updated successfully!")
+            
+        except ValueError:
+            messages.error(request, "Please enter valid numbers!")
+        except Exception as e:
+            messages.error(request, f"Failed to update tickets: {str(e)}")
+            
+    return redirect("seller_dashboard")

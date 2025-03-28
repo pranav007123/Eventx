@@ -60,6 +60,18 @@
                             </div>
                         </div>
 
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="total_tickets" class="form-label">Total Tickets</label>
+                                <input type="number" class="form-control" id="total_tickets" name="total_tickets" value="{{ event.total_tickets }}" min="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="available_tickets" class="form-label">Available Tickets</label>
+                                <input type="number" class="form-control" id="available_tickets" name="available_tickets" value="{{ event.available_tickets }}" min="0" required>
+                                <div class="form-text">Cannot be less than sold tickets ({{ event.total_tickets|add:"-"|add:event.available_tickets }})</div>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label for="image" class="form-label">Event Image</label>
                             <div class="input-group">

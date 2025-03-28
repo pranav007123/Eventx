@@ -40,6 +40,12 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
               </li>
+              <li class="nav-item">
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-link btn btn-link" style="text-decoration: none;">Logout</button>
+                </form>
+              </li>
             {% elif user.seller %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'seller_dashboard' %}">Seller Dashboard</a>
@@ -49,13 +55,14 @@
                 <a class="nav-link" href="{% url 'booking_history' %}">My Bookings</a>
               </li>
             {% endif %}
+            {% if not user.is_superuser %}
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button"
                  data-bs-toggle="dropdown" aria-expanded="false">
                 {{ user.first_name|default:user.username }}
               </a>
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" href="">Profile</a></li>
+                <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li>
                 <li>
                   <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: inline;">
                     {% csrf_token %}
@@ -64,6 +71,7 @@
                 </li>
               </ul>
             </li>
+            {% endif %}
           {% else %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'login' %}">Login</a>
